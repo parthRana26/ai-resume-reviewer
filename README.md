@@ -1,5 +1,7 @@
 # 🛡️ CVPulse: Multi-Agent RAG Resume Analyzer & Career Planner
 
+**Author:** Parth Rana
+
 CVPulse is a production-grade, multi-agent RAG-powered resume analysis application that parses, evaluates, and scores resumes against any custom target job role typed by the user. Powered by a sequential LangGraph pipeline, the application uses local semantic context retrieval (RAG) and Groq-hosted LLMs to deliver comprehensive reviews, shortlist recommendations, phrasing rewrites, tailored interview questions, and career roadmaps.
 
 <p align="center">
