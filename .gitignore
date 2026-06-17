@@ -1,0 +1,53 @@
+# Virtual Environments
+venv_resume/
+venv/
+.venv/
+env/
+ENV/
+pyvenv.cfg
+.python-version
+
+# Environment Variables & Secrets (Critical to ignore)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.key
+*.pem
+secrets.json
+
+# Vector Stores, Metadata DB & Databases
+vectorstore/
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded Resumes / File System Temp
+uploads/
+**/uploads/
+tmp/
+temp/
+
+# Python cache & compiler output
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.tox/
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.suo
+*.swp
+*.swo
+
+# OS metadata
+.DS_Store
+Thumbs.db

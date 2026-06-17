@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Reviewer & ATS Optimizer</title>
+    <!-- Google Font Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Toast Notification Host -->
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app-container">
+        <!-- Top Navigation / Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-file-invoice logo-icon"></i>
+                <h1>CV<span>Pulse</span></h1>
+            </div>
+            <p class="subtitle">Multi-Agent AI Resume Reviewer & ATS Scanner</p>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <main class="main-grid">
+            
+            <!-- Left Side: Controls -->
+            <section class="control-panel">
+                
+                <!-- Card 1: Resume File Upload -->
+                <div class="card upload-card glow-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-cloud-arrow-up icon-accent"></i>
+                        <h2>Upload Resume</h2>
+                    </div>
+                    <p class="card-desc">Supported formats: PDF, DOCX (Max 10MB)</p>
+                    
+                    <div class="dropzone" id="dropzone">
+                        <input type="file" id="fileInput" accept=".pdf,.docx" style="display: none;">
+                        <i class="fa-solid fa-file-pdf file-icon" id="dropzoneIcon"></i>
+                        <p id="dropzoneText">Drag & drop your file here or <span class="browse-btn">Browse</span></p>
+                        <p class="file-info" id="fileInfo"></p>
+                    </div>
+
+                    <button class="btn btn-primary" id="uploadBtn" disabled>
+                        <i class="fa-solid fa-arrow-up-from-bracket"></i> Upload to Server
+                    </button>
+                    
+                    <div class="alert" id="uploadAlert"></div>
+                </div>
+
+                <!-- Card 2: Analysis Setup -->
+                <div class="card setup-card glow-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-sliders icon-accent"></i>
+                        <h2>Analysis Parameters</h2>
+                    </div>
+                    <p class="card-desc">Select an uploaded resume and target career path.</p>
+
+                    <div class="form-group">
+                        <label for="resumeSelect"><i class="fa-solid fa-file-lines"></i> Select Resume</label>
+                        <select id="resumeSelect" class="form-control">
+                            <option value="" disabled selected>Select from database...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roleInput"><i class="fa-solid fa-briefcase"></i> Target Job Role</label>
+                        <input type="text" id="roleInput" list="roleSuggestions" class="form-control" placeholder="Type or select job role..." autocomplete="off">
+                        <datalist id="roleSuggestions">
+                            <option value="AI Engineer">
+                            <option value="GenAI Engineer">
+                            <option value="Machine Learning Engineer">
+                            <option value="Data Scientist">
+                            <option value="Software Engineer">
+                            <option value="Quantitative Researcher">
+                            <option value="Quantitative Developer">
+                            <option value="Product Manager">
+                            <option value="Data Analyst">
+                            <option value="DevOps Engineer">
+                            <option value="Solutions Architect">
+                            <option value="Financial Analyst">
+                            <option value="Marketing Manager">
+                        </datalist>
+                    </div>
+
+                    <button class="btn btn-secondary" id="analyzeBtn" disabled>
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Analysis
+                    </button>
+                </div>
+            </section>
+
+            <!-- Right Side: Display Results -->
+            <section class="results-panel">
+                
+                <!-- State 1: Placeholder/Welcome -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-glow"></div>
+                    <i class="fa-solid fa-chart-line empty-icon"></i>
+                    <h2>No Analysis Running</h2>
+                    <p>Upload your resume, select your target job path, and initiate the multi-agent AI scanner to generate your report.</p>
+                </div>
+
+                <!-- State 2: Processing Loader -->
+                <div class="loader-state" id="loaderState" style="display: none;">
+                    <div class="spinner-container">
+                        <div class="cyber-spinner"></div>
+                        <i class="fa-solid fa-robot brain-center"></i>
+                        <div class="laser-scanner"></div>
+                    </div>
+                    <h2>Scanning Your Resume...</h2>
+                    <p class="loader-sub">Triggering multi-agent LangGraph workflow via Groq LLM.</p>
+                    
+                    <div class="status-tracker">
+                        <div class="status-step active" id="step-parser">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> Resume Parser Agent
+                        </div>
+                        <div class="status-line"></div>
+                        <div class="status-step" id="step-rag">
+                            <i class="fa-solid fa-circle"></i> RAG Vector DB Indexer
+                        </div>
+                        <div class="status-line"></div>
+                        <div class="status-step" id="step-analyzer">
+                            <i class="fa-solid fa-circle"></i> AI Reviewer Agent
+                        </div>
+                        <div class="status-line"></div>
+                        <div class="status-step" id="step-feedback">
+                            <i class="fa-solid fa-circle"></i> Feedback Compiler
+                        </div>
+                    </div>
+
+                    <!-- Loader Console -->
+                    <div class="terminal-logs" id="terminalLogs">Initializing environment parameters...</div>
+                </div>
+
+                <!-- State 3: Failure State -->
+                <div class="error-state" id="errorState" style="display: none;">
+                    <i class="fa-solid fa-circle-exclamation error-icon"></i>
+                    <h2>Analysis Pipeline Failed</h2>
+                    <p id="errorMessage">An unexpected error occurred during processing.</p>
+                    <button class="btn btn-primary" id="retryBtn">Try Again</button>
+                </div>
+
+                <!-- State 4: Complete Analysis Report -->
+                <div class="report-container" id="reportContainer" style="display: none;">
+                    
+                    <!-- Report Header -->
+                    <div class="report-header-flex">
+                        <div class="header-left">
+                            <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Navigation">
+                                <i class="fa-solid fa-bars"></i>
+                            </button>
+                            <div>
+                                <span class="role-badge" id="reportRole">AI Engineer</span>
+                                <h2>Resume Insights</h2>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline" id="newScanBtn">
+                            <i class="fa-solid fa-plus"></i> New Scan
+                        </button>
+                    </div>
+
+                    <!-- Layout: Sidebar and Content Workspace -->
+                    <div class="report-workspace">
+                        
+                        <!-- Left Vertical Tab Sidebar -->
+                        <aside class="report-sidebar" id="reportSidebar">
+                            <div class="sidebar-group" id="group-dashboard">
+                                <div class="sidebar-group-title">Dashboard</div>
+                                <ul class="sidebar-nav">
+                                    <li class="tab-link active" data-tab="tab-overview" id="nav-overview">
+                                        <i class="fa-solid fa-gauge"></i> Overview
+                                    </li>
+                                    <li class="tab-link" data-tab="tab-gaps" id="nav-gaps">
+                                        <i class="fa-solid fa-scale-unbalanced"></i> Strengths & Gaps
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="sidebar-group" id="group-personas">
+                                <div class="sidebar-group-title">Reviewer Personas</div>
+                                <ul class="sidebar-nav">
+                                    <li class="tab-link" data-tab="tab-recruiter" id="nav-recruiter">
+                                        <i class="fa-solid fa-user-tie"></i> Recruiter Review
+                                    </li>
+                                    <li class="tab-link" data-tab="tab-hiring" id="nav-hiring">
+                                        <i class="fa-solid fa-user-gear"></i> Hiring Manager
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="sidebar-group" id="group-ats">
+                                <div class="sidebar-group-title">ATS & Content</div>
+                                <ul class="sidebar-nav">
+                                    <li class="tab-link" data-tab="tab-skills" id="nav-skills">
+                                        <i class="fa-solid fa-tags"></i> Skills Audit
+                                    </li>
+                                    <li class="tab-link" data-tab="tab-rewrite" id="nav-rewrite">
+                                        <i class="fa-solid fa-pen-nib"></i> Phrasing Rewrite
+                                    </li>
+                                    <li class="tab-link" data-tab="tab-recommendations" id="nav-recommendations">
+                                        <i class="fa-solid fa-lightbulb"></i> Improvement Plan
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="sidebar-group" id="group-career">
+                                <div class="sidebar-group-title">Prep & Career</div>
+                                <ul class="sidebar-nav">
+                                    <li class="tab-link" data-tab="tab-interview" id="nav-interview">
+                                        <i class="fa-solid fa-comments"></i> Interview Prep
+                                    </li>
+                                    <li class="tab-link" data-tab="tab-roadmap" id="nav-roadmap">
+                                        <i class="fa-solid fa-map-signs"></i> Career Roadmap
+                                    </li>
+                                </ul>
+                            </div>
+                        </aside>
+
+                        <!-- Right Content Panels Container -->
+                        <div class="report-content-panels">
+
+                            <!-- TAB CONTENT 1: Overview -->
+                            <div class="tab-content active" id="tab-overview">
+                                <div class="card glow-card">
+                                    <div class="section-title">
+                                        <h3>Evaluation Scores</h3>
+                                        <p>Comprehensive match score overview compared to market standard standards.</p>
+                                    </div>
+                                    
+                                    <!-- Circular Score Metrics Grid -->
+                                    <div class="scores-grid">
+                                        <!-- Metric: Overall Score -->
+                                        <div class="score-card main-score">
+                                            <div class="circle-progress" data-score="0" id="circle-overall">
+                                                <svg>
+                                                    <circle cx="50" cy="50" r="45"></circle>
+                                                    <circle cx="50" cy="50" r="45" class="progress-bar-svg" id="svg-overall"></circle>
+                                                </svg>
+                                                <span class="score-value" id="val-overall">0%</span>
+                                            </div>
+                                            <span class="score-label">Overall Match</span>
+                                            <span class="conf-value" id="conf-overall">Confidence: --</span>
+                                        </div>
+
+                                        <!-- Metric: ATS Score -->
+                                        <div class="score-card">
+                                            <div class="circle-progress" data-score="0" id="circle-ats">
+                                                <svg>
+                                                    <circle cx="40" cy="40" r="35"></circle>
+                                                    <circle cx="40" cy="40" r="35" class="progress-bar-svg" id="svg-ats"></circle>
+                                                </svg>
+                                                <span class="score-value" id="val-ats">0%</span>
+                                            </div>
+                                            <span class="score-label">ATS Index</span>
+                                            <span class="conf-value" id="conf-ats">Confidence: --</span>
+                                        </div>
+
+                                        <!-- Metric: Skills Score -->
+                                        <div class="score-card">
+                                            <div class="circle-progress" data-score="0" id="circle-skills">
+                                                <svg>
+                                                    <circle cx="40" cy="40" r="35"></circle>
+                                                    <circle cx="40" cy="40" r="35" class="progress-bar-svg" id="svg-skills"></circle>
+                                                </svg>
+                                                <span class="score-value" id="val-skills">0%</span>
+                                            </div>
+                                            <span class="score-label">Skills Match</span>
+                                            <span class="conf-value" id="conf-skills">Confidence: --</span>
+                                        </div>
+
+                                        <!-- Metric: Experience Score -->
+                                        <div class="score-card">
+                                            <div class="circle-progress" data-score="0" id="circle-experience">
+                                                <svg>
+                                                    <circle cx="40" cy="40" r="35"></circle>
+                                                    <circle cx="40" cy="40" r="35" class="progress-bar-svg" id="svg-experience"></circle>
+                                                </svg>
+                                                <span class="score-value" id="val-experience">0%</span>
+                                            </div>
+                                            <span class="score-label">Experience</span>
+                                            <span class="conf-value" id="conf-experience">Confidence: --</span>
+                                        </div>
+
+                                        <!-- Metric: Project Score -->
+                                        <div class="score-card">
+                                            <div class="circle-progress" data-score="0" id="circle-project">
+                                                <svg>
+                                                    <circle cx="40" cy="40" r="35"></circle>
+                                                    <circle cx="40" cy="40" r="35" class="progress-bar-svg" id="svg-project"></circle>
+                                                </svg>
+                                                <span class="score-value" id="val-project">0%</span>
+                                            </div>
+                                            <span class="score-label">Projects Fit</span>
+                                            <span class="conf-value" id="conf-project">Confidence: --</span>
+                                        </div>
+
+                                        <!-- Metric: Education Score -->
+                                        <div class="score-card">
+                                            <div class="circle-progress" data-score="0" id="circle-education">
+                                                <svg>
+                                                    <circle cx="40" cy="40" r="35"></circle>
+                                                    <circle cx="40" cy="40" r="35" class="progress-bar-svg" id="svg-education"></circle>
+                                                </svg>
+                                                <span class="score-value" id="val-education">0%</span>
+                                            </div>
+                                            <span class="score-label">Education</span>
+                                            <span class="conf-value" id="conf-education">Confidence: --</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Explanations Section -->
+                                    <div class="score-explanations-container" id="explanationsList">
+                                        <!-- Dynamic JS injection -->
+                                    </div>
+                                </div>
+
+                                <!-- Executive Summary Section -->
+                                <div class="card feedback-card glow-card">
+                                    <div class="card-header">
+                                        <i class="fa-solid fa-quote-left icon-accent"></i>
+                                        <h2>Executive Evaluation</h2>
+                                    </div>
+                                    <div class="feedback-text" id="finalFeedbackText">
+                                        <!-- Dynamic JS injection -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB CONTENT 2: Strengths & Gaps -->
+                            <div class="tab-content" id="tab-gaps">
+                                <div class="features-grid">
+                                    <!-- Strengths Card -->
+                                    <div class="card strength-card glow-card">
+                                        <div class="card-header text-success">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            <h2>Key Strengths</h2>
+                                        </div>
+                                        <p class="card-desc">Positive criteria identified by the analyzer agent.</p>
+                                        <ul class="bullet-list" id="strengthsList">
+                                            <!-- Dynamic JS injection -->
+                                        </ul>
+                                    </div>
+
+                                    <!-- Weaknesses Card -->
+                                    <div class="card weakness-card glow-card">
+                                        <div class="card-header text-warning">
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                            <h2>Identified Gaps</h2>
+                                        </div>
+                                        <p class="card-desc">Implicit weaknesses or missing criteria to target.</p>
+                                        <ul class="bullet-list" id="weaknessesList">
+                                            <!-- Dynamic JS injection -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB CONTENT 3: Skills Audit -->
+                            <div class="tab-content" id="tab-skills">
+                                <div class="card missing-skills-card glow-card">
+                                    <div class="card-header">
+                                        <i class="fa-solid fa-tags icon-accent"></i>
+                                        <h2>Missing Skills & Keywords</h2>
+                                    </div>
+                                    <p class="card-desc">ATS optimization: Include these missing keywords in your skill matrices to optimize keyword match ratios.</p>
+                                    <div class="tag-cloud" id="missingSkillsCloud">
+                                        <!-- Dynamic JS injection -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB CONTENT 4: Actionable Improvements -->
+                            <div class="tab-content" id="tab-recommendations">
+                                <div class="card recommendations-card glow-card">
+                                    <div class="card-header">
+                                        <i class="fa-solid fa-list-check icon-accent"></i>
+                                        <h2>Improvement Plan</h2>
+                                    </div>
+                                    <p class="card-desc">SaaS Recommendations: Review detailed rewrites and optimizations.</p>
+                                    
+                                    <div class="recommendations-list" id="recommendationsList">
+                                        <!-- Dynamic JS injection -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB CONTENT 5: Recruiter Review -->
+                            <div class="tab-content" id="tab-recruiter">
+                                <div class="card glow-card">
+                                    <div class="card-header">
+                                        <i class="fa-solid fa-user-tie icon-accent"></i>
+                                        <h2>Recruiter Candidate Evaluation</h2>
+                                    </div>
+                                    <div class="recruiter-meta-bar" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                                        <div class="badge-item" id="recruiterDecisionBadge">
+                                            <!-- Dynamic -->
+                                        </div>
+                                        <div class="badge-item" id="recruiterRiskBadge">
+                                            <!-- Dynamic -->
+                                        </div>
+                                        <div class="badge-item" style="padding: 0.5rem 1rem; border-radius: 8px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                            <i class="fa-solid fa-robot"></i> <span id="recruiterModelText">Llama 3.3 70B</span>
+                                        </div>
+                                    </div>
+                                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem;">Executive Summary</h3>
+                                    <p class="feedback-text" id="recruiterSummaryText" style="margin-bottom: 1.5rem; line-height: 1.6; color: var(--text-muted); font-style: normal;">
+                                        <!-- Dynamic -->
+                                    </p>
+                                    
+                                    <div class="features-grid">
+                                        <div class="card strength-card" style="background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); padding: 1.25rem;">
+                                            <div class="card-header text-success">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                                <h3>Candidate Key Strengths</h3>
+                                            </div>
+                                            <ul class="bullet-list" id="recruiterStrengthsList">
+                                                <!-- Dynamic -->
+                                            </ul>
+                                        </div>
+                                        <div class="card weakness-card" style="background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); padding: 1.25rem;">
+                                            <div class="card-header text-warning">
+                                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                                <h3>Recruiter Noted Risks</h3>
+                                            </div>
+                                            <ul class="bullet-list" id="recruiterWeaknessesList">
+                                                <!-- Dynamic -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB CONTENT 6: Hiring Manager -->
+                            <div class="tab-content" id="tab-hiring">
+                                <div class="card glow-card">
+                                    <div class="card-header">
+                                        <i class="fa-solid fa-user-gear icon-accent"></i>
+                                        <h2>Hiring Manager Assessment</h2>
+                                    </div>
+                                    <div class="recruiter-meta-bar" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                                        <div class="badge-item" id="hiringRecommendationBadge">
+                                            <!-- Dynamic -->
+                                        </div>
+                                        <div class="badge-item" style="padding: 0.5rem 1rem; border-radius: 8px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                            <i class="fa-solid fa-robot"></i> <span id="hiringModelText">Llama 3.3 70B</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="assessment-section" style="margin-bottom: 1.5rem;">
+                                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);"><i class="fa-solid fa-code" style="color:var(--secondary); margin-right: 0.5rem;"></i> Technical Skill Depth Assessment</h3>
+                                        <p id="hiringSkillDepthText" style="line-height: 1.6; color: var(--text-muted); margin-bottom: 1rem;"></p>
+                                    </div>
+                                    
+                                    <div class="assessment-section" style="margin-bottom: 1.5rem;">
+                                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);"><i class="fa-solid fa-folder-open" style="color:var(--accent); margin-right: 0.5rem;"></i> Project Quality Review</h3>
+                                        <p id="hiringProjectQualityText" style="line-height: 1.6; color: var(--text-muted); margin-bottom: 1rem;"></p>
+                                    </div>
+                                    
+                                    <div class="card weakness-card" style="background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); padding: 1.25rem;">
+                                        <div class="card-header text-warning">
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                            <h3>Technical Gaps & Concerns</h3>
+                                        </div>
+                                        <ul class="bullet-list" id="hiringConcernsList">
+                                            <!-- Dynamic -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB CONTENT 7: Resume Rewrite -->
+                            <div class="tab-content" id="tab-rewrite">
+                                <div class="card glow-card">
+                                    <div class="card-header">
+                                        <i class="fa-solid fa-pen-nib icon-accent"></i>
+                                        <h2>Optimized Resume Phrasing (Rewrite)</h2>
+                                    </div>
+                                    <p class="card-desc">Compare current phrasing with optimized, ATS-friendly phrasing that highlights action verbs and quantitative metrics.</p>
+                                    
+                                    <div class="rewrite-container" style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">
+                                        <div class="rewrite-section">
+                                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-main);"><i class="fa-solid fa-briefcase" style="color:var(--primary); margin-right: 0.5rem;"></i> Optimized Experience Bullet Points</h3>
+                                            <div class="rewrite-list" id="rewriteBulletsList" style="display:flex; flex-direction:column; gap:0.75rem;">
+                                                <!-- Dynamic -->
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="rewrite-section">
+                                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-main);"><i class="fa-solid fa-diagram-project" style="color:var(--secondary); margin-right: 0.5rem;"></i> Rewritten Projects Accomplishments</h3>
+                                            <div class="rewrite-list" id="rewriteProjectsList" style="display:flex; flex-direction:column; gap:0.75rem;">
+                                                <!-- Dynamic -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB CONTENT 8: Interview Qs -->
+                            <div class="tab-content" id="tab-interview">
+                                <div class="card glow-card">
+                                    <div class="card-header">
+                                        <i class="fa-solid fa-comments icon-accent"></i>
+                                        <h2>Custom Interview Preparation Questions</h2>
+                                    </div>
+                                    <p class="card-desc">Practice answering these customized technical, project, and behavioral questions tailored directly to your resume and the target role.</p>
+                                    
+                                    <div class="interview-grid" style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">
+                                        <div class="interview-section">
+                                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-main);"><i class="fa-solid fa-laptop-code" style="color:var(--info); margin-right: 0.5rem;"></i> Role-Specific Technical Questions</h3>
+                                            <div class="questions-list" id="interviewTechnicalList" style="display:flex; flex-direction:column; gap:0.75rem;">
+                                                <!-- Dynamic -->
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="interview-section">
+                                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-main);"><i class="fa-solid fa-file-code" style="color:var(--accent); margin-right: 0.5rem;"></i> Resume Project-Based Deep Dives</h3>
+                                            <div class="questions-list" id="interviewProjectsList" style="display:flex; flex-direction:column; gap:0.75rem;">
+                                                <!-- Dynamic -->
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="interview-section">
+                                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-main);"><i class="fa-solid fa-people-arrows" style="color:var(--primary); margin-right: 0.5rem;"></i> HR & Behavioral Questions</h3>
+                                            <div class="questions-list" id="interviewHRList" style="display:flex; flex-direction:column; gap:0.75rem;">
+                                                <!-- Dynamic -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB CONTENT 9: Career Roadmap -->
+                            <div class="tab-content" id="tab-roadmap">
+                                <div class="card glow-card">
+                                    <div class="card-header">
+                                        <i class="fa-solid fa-map-signs icon-accent"></i>
+                                        <h2>Actionable Career Roadmap</h2>
+                                    </div>
+                                    <div class="recruiter-meta-bar" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                                        <div class="badge-item" style="padding: 0.5rem 1rem; border-radius: 8px; color: var(--text-main); background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); font-weight: 600;">
+                                            Current Tier: <span id="roadmapCurrentLevelText">Mid-Level</span>
+                                        </div>
+                                        <div class="badge-item" style="padding: 0.5rem 1rem; border-radius: 8px; color: var(--text-main); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); font-weight: 600;">
+                                            Target Role: <span id="roadmapTargetRoleText">Senior GenAI Engineer</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="roadmap-timeline" style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem; position: relative; padding-left: 1.5rem; border-left: 2px solid var(--border-color);">
+                                        <div class="timeline-item" style="position: relative;">
+                                            <div class="timeline-dot" style="position: absolute; left: -1.9rem; top: 0.2rem; width: 12px; height: 12px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary);"></div>
+                                            <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">First 30 Days: Foundation & Gap Closing</h3>
+                                            <ul class="bullet-list" id="roadmap30dList">
+                                                <!-- Dynamic -->
+                                            </ul>
+                                        </div>
+                                        
+                                        <div class="timeline-item" style="position: relative;">
+                                            <div class="timeline-dot" style="position: absolute; left: -1.9rem; top: 0.2rem; width: 12px; height: 12px; border-radius: 50%; background: var(--secondary); box-shadow: 0 0 8px var(--secondary);"></div>
+                                            <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--secondary);">90 Days Plan: Project Depth & Certification</h3>
+                                            <ul class="bullet-list" id="roadmap90dList">
+                                                <!-- Dynamic -->
+                                            </ul>
+                                        </div>
+                                        
+                                        <div class="timeline-item" style="position: relative;">
+                                            <div class="timeline-dot" style="position: absolute; left: -1.9rem; top: 0.2rem; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);"></div>
+                                            <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--accent);">6 Months Plan: Leadership & Interview Targeting</h3>
+                                            <ul class="bullet-list" id="roadmap6mList">
+                                                <!-- Dynamic -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div> <!-- Closes .report-content-panels -->
+                    </div> <!-- Closes .report-workspace -->
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script File -->
+    <script src="app.js"></script>
+</body>
+</html>
